@@ -19,7 +19,7 @@ return {
     ["an admin script dedicated to provide the necessities of exploiting."] = "一个专为脚本开发者服务的脚本",
     ["CLEAR"] = "清空",
     ["EXECUTE CLIPBOARD"] = "从剪贴板注入",
-    ["Thank you for using Delta <3\nGet Delta only at deltaexploits.gg!\nTELEGRAM: t.me/deltadyn\nDISCORD: discord.gg/deltax\nONLY deltaexploits.gg IS REAL!"] = "桐 TStudioX",
+    ["Thank you for using Delta <3\nGet Delta only at deltaexploits.gg!\nTELEGRAM: t.me/deltadyn\nDISCORD: discord.gg/deltax\nONLY deltaexploits.gg IS REAL!"] = ">⤚<",
     --Setting
     ["Enabled"] = "已启用",
     ["Disabled"] = "已禁用",
