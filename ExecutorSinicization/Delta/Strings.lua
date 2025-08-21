@@ -1,5 +1,6 @@
 return {
     --Home
+    ["Search for scripts..."] = "搜索脚本",
     ["UPLOAD"] = "上传",
     ["DELETE"] = "删除",
     ["EXECUTE"] = "注入",
@@ -16,10 +17,20 @@ return {
     ["Network"] = "网络",
     ["Client status information"] = "客户端状态",
     ["Check out this script!"] = "看看这个脚本!",
-    ["an admin script dedicated to provide the necessities of exploiting."] = "一个专为脚本开发者服务的脚本",
+    ["an admin script dedicated to provide the necessities of exploiting."] = "一款专门提供核心功能的管理员脚本",
     ["CLEAR"] = "清空",
     ["EXECUTE CLIPBOARD"] = "从剪贴板注入",
-    ["Thank you for using Delta <3\nGet Delta only at deltaexploits.gg!\nTELEGRAM: t.me/deltadyn\nDISCORD: discord.gg/deltax\nONLY deltaexploits.gg IS REAL!"] = ">⤚<",
+    ["Thank you for using Delta <3\nGet Delta only at deltaexploits.gg!\nTELEGRAM: t.me/deltadyn\nDISCORD: discord.gg/deltax\nONLY deltaexploits.gg IS REAL!"] = ":3",
+    --ScriptHub
+    ["Search on scriptblox.com..."] = "在线搜索脚本",
+    ["VERIFIED"] = "已验证",
+    ["10 Views"] = "10 浏览",
+    ["Select Your Option"] = "选择你选项",
+    ["Choose whether to execute, open in a new tab, etc.."] = "选择注入、在新标签页中打开等操作",
+    ["EXECUTE SELECTED SCRIPT"] = "注入选择的脚本",
+    ["OPEN SCRIPT IN EDITOR"] = "在编辑器中打开脚本",
+    ["SAVE SELECTED SCRIPT"] = "保存选择的脚本",
+    ["COPY TO CLIPBOARD"] = "复制到剪贴板",
     --Setting
     ["Enabled"] = "已启用",
     ["Disabled"] = "已禁用",
