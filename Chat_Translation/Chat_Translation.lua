@@ -1,6 +1,6 @@
 --[[
     AI Message Translator
-    Made by Aim, updated by evn
+    Made by Aim, updated by evn and tongblx
     AI版本修改版 - 支持多种AI API
     默认使用DeepSeek API
 --]]
