@@ -67,10 +67,18 @@ end
 
 -- API调用函数
 local function callAPI(apiType, text, fromLang, toLang)
+    print("调用API:", apiType)
+    
     local apiConfig = Config[apiType:sub(1,1):upper() .. apiType:sub(2):lower()]
     
-    if not apiConfig or not apiConfig.APIKey or apiConfig.APIKey == "" then
+    if not apiConfig then
+        warn("API配置不存在: " .. apiType)
+        return nil
+    end
+    
+    if not apiConfig.APIKey or apiConfig.APIKey == "" then
         warn("API密钥未配置: " .. apiType)
+        print("请设置 _G." .. apiType:sub(1,1):upper() .. apiType:sub(2):lower() .. "_APIKey")
         return nil
     end
     
@@ -80,6 +88,8 @@ local function callAPI(apiType, text, fromLang, toLang)
         toLang,
         text
     )
+    
+    print("提示词:", prompt)
     
     local success, result = pcall(function()
         if apiType == "deepseek" then
@@ -96,15 +106,19 @@ local function callAPI(apiType, text, fromLang, toLang)
     end)
     
     if success then
+        print("API调用成功，结果:", result)
         return result
     else
         warn("API调用失败: " .. tostring(result))
+        print("错误详情:", debug.traceback())
         return nil
     end
 end
 
 -- DeepSeek API调用
 function callDeepSeekAPI(config, prompt)
+    print("调用DeepSeek API")
+    
     local requestBody = jsonEncode({
         model = config.Model,
         messages = {
@@ -117,21 +131,44 @@ function callDeepSeekAPI(config, prompt)
         max_tokens = 1000
     })
     
-    local response = request({
-        Url = config.BaseURL .. "/chat/completions",
-        Method = "POST",
-        Headers = {
-            ["Content-Type"] = "application/json",
-            ["Authorization"] = "Bearer " .. config.APIKey
-        },
-        Body = requestBody
-    })
+    print("请求URL:", config.BaseURL .. "/chat/completions")
+    print("请求体:", requestBody)
+    
+    local success, response = pcall(function()
+        return request({
+            Url = config.BaseURL .. "/chat/completions",
+            Method = "POST",
+            Headers = {
+                ["Content-Type"] = "application/json",
+                ["Authorization"] = "Bearer " .. config.APIKey
+            },
+            Body = requestBody
+        })
+    end)
+    
+    if not success then
+        error("DeepSeek请求失败: " .. tostring(response))
+    end
+    
+    print("响应状态码:", response.StatusCode)
+    print("响应内容:", response.Body)
     
     if response.StatusCode == 200 then
-        local data = jsonDecode(response.Body)
-        return data.choices[1].message.content
+        local success, data = pcall(function()
+            return jsonDecode(response.Body)
+        end)
+        
+        if not success then
+            error("DeepSeek JSON解析失败: " .. tostring(data))
+        end
+        
+        if data.choices and data.choices[1] and data.choices[1].message and data.choices[1].message.content then
+            return data.choices[1].message.content
+        else
+            error("DeepSeek响应格式错误: " .. response.Body)
+        end
     else
-        error("HTTP " .. response.StatusCode .. ": " .. response.Body)
+        error("DeepSeek HTTP错误 " .. response.StatusCode .. ": " .. response.Body)
     end
 end
 
@@ -236,12 +273,30 @@ end
 
 -- 翻译函数
 function translate(text, toLang, fromLang)
+    print("开始翻译，使用API:", Config.CurrentAPI)
+    print("原文:", text)
+    print("目标语言:", toLang or Config.TargetLang)
+    print("源语言:", fromLang or "auto")
+    
     fromLang = fromLang or "auto"
     toLang = toLang or Config.TargetLang
+    
+    -- 检查API配置
+    local apiConfig = Config[Config.CurrentAPI:sub(1,1):upper() .. Config.CurrentAPI:sub(2):lower()]
+    if not apiConfig then
+        warn("API配置不存在:", Config.CurrentAPI)
+        return nil
+    end
+    
+    if not apiConfig.APIKey or apiConfig.APIKey == "" then
+        warn("API密钥未配置:", Config.CurrentAPI)
+        return nil
+    end
     
     local translation = callAPI(Config.CurrentAPI, text, fromLang, toLang)
     
     if translation then
+        print("翻译成功:", translation)
         return {
             text = translation:gsub("^%s+", ""):gsub("%s+$", ""), -- 去除首尾空格
             from = {
@@ -251,6 +306,7 @@ function translate(text, toLang, fromLang)
             raw = translation
         }
     else
+        warn("翻译失败，返回nil")
         return nil
     end
 end
@@ -295,6 +351,35 @@ local properties = {
     Text = "";
 }
 
+-- 初始化检查和测试函数
+local function testConfiguration()
+    print("=== 配置检查 ===")
+    print("当前API:", Config.CurrentAPI)
+    
+    local apiConfig = Config[Config.CurrentAPI:sub(1,1):upper() .. Config.CurrentAPI:sub(2):lower()]
+    if apiConfig then
+        print("API配置存在")
+        print("API密钥状态:", apiConfig.APIKey and "已设置" or "未设置")
+        print("BaseURL:", apiConfig.BaseURL)
+        print("Model:", apiConfig.Model)
+    else
+        warn("API配置不存在")
+    end
+    
+    -- 测试StarterGui
+    local success, err = pcall(function()
+        StarterGui:SetCore("ChatMakeSystemMessage", properties)
+    end)
+    
+    if success then
+        print("StarterGui测试成功")
+    else
+        warn("StarterGui测试失败:", err)
+    end
+    
+    print("=== 配置检查完成 ===")
+end
+
 -- 通知用户
 game:GetService("StarterGui"):SetCore("SendNotification",
     {
@@ -304,8 +389,11 @@ game:GetService("StarterGui"):SetCore("SendNotification",
     }
 )
 
-properties.Text = "使用方法:\n>语言代码 - 设置翻译目标语言\n>api API名称 - 切换API (deepseek/openai/claude/gemini)\n>d - 禁用翻译发送\n例如: >zh-cn 或 >api openai"
+properties.Text = "使用方法:\n>语言代码 - 设置翻译目标语言\n>api API名称 - 切换API (deepseek/openai/claude/gemini)\n>d - 禁用翻译发送\n>test - 测试配置\n例如: >zh-cn 或 >api openai"
 StarterGui:SetCore("ChatMakeSystemMessage", properties)
+
+-- 运行配置检查
+testConfiguration()
 
 -- 翻译接收到的消息
 function translateFrom(message)
@@ -357,28 +445,58 @@ end
 -- 处理接收到的消息
 do
     function get(plr, msg)
+        print("开始翻译消息:", msg)
+        print("发送者:", plr)
+        
         local tab = translateFrom(msg)
         if tab then
-            properties.Text = "("..tab[2]:upper()..") ".."[".. plr .."]: "..tab[1]
-            StarterGui:SetCore("ChatMakeSystemMessage", properties)
+            local translatedText = "("..tab[2]:upper()..") ".."[".. plr .."]: "..tab[1]
+            print("翻译结果:", translatedText)
+            
+            properties.Text = translatedText
+            print("设置properties.Text为:", properties.Text)
+            
+            local success, err = pcall(function()
+                StarterGui:SetCore("ChatMakeSystemMessage", properties)
+            end)
+            
+            if success then
+                print("成功发送系统消息")
+            else
+                warn("发送系统消息失败:", err)
+            end
+        else
+            warn("翻译失败，返回nil")
         end
     end
 
     EventFolder:WaitForChild("OnMessageDoneFiltering").OnClientEvent:Connect(function(data)
-        if data == nil then return end
+        print("收到聊天事件")
+        if data == nil then 
+            warn("聊天数据为空")
+            return 
+        end
 
+        print("聊天数据:", data)
+        
         local plr = Players:FindFirstChild(data.FromSpeaker)
         local msg = tostring(data.Message)
         local originalchannel = tostring(data.OriginalChannel)
 
+        print("提取的消息内容:", msg)
+        print("原始频道:", originalchannel)
+
         if plr then 
             plr = plr.DisplayName 
+            print("找到玩家，显示名称:", plr)
         else 
             plr = tostring(data.FromSpeaker)
+            print("未找到玩家，使用原始名称:", plr)
         end
 
         if originalchannel:find("To ") then
             plr = plr..originalchannel
+            print("私聊消息，更新玩家名称:", plr)
         end
 
         get(plr, msg)
@@ -419,6 +537,10 @@ local HookChat = function(Bar)
                     -- 处理命令
                     if Message == ">d" then
                         disableSend()
+                    elseif Message == ">test" then
+                        testConfiguration()
+                        properties.Text = "[AI翻译] 配置检查完成，查看控制台输出"
+                        StarterGui:SetCore("ChatMakeSystemMessage", properties)
                     elseif Message:sub(1,1) == ">" and not Message:find(" ") then
                         local command = Message:sub(2):lower()
                         
@@ -429,6 +551,7 @@ local HookChat = function(Bar)
                                 Config.CurrentAPI = apiName
                                 properties.Text = "[AI翻译] 已切换到 " .. apiName:upper() .. " API"
                                 StarterGui:SetCore("ChatMakeSystemMessage", properties)
+                                testConfiguration()
                             else
                                 properties.Text = "[AI翻译] 不支持的API: " .. apiName
                                 StarterGui:SetCore("ChatMakeSystemMessage", properties)
@@ -440,7 +563,7 @@ local HookChat = function(Bar)
                             properties.Text = "[AI翻译] 目标语言设置为: " .. languageCodes[command]
                             StarterGui:SetCore("ChatMakeSystemMessage", properties)
                         else
-                            properties.Text = "[AI翻译] 无效的语言代码或命令"
+                            properties.Text = "[AI翻译] 无效的语言代码或命令。可用命令: >test, >d, >api [deepseek/openai/claude/gemini], >[语言代码]"
                             StarterGui:SetCore("ChatMakeSystemMessage", properties)
                         end
                     elseif sendEnabled and not (Message:sub(1,3) == "/e " or Message:sub(1,7) == "/emote ") then
