@@ -317,8 +317,33 @@ function translateFrom(message)
     end
 end
 
--- 聊天发送函数
-local CBar, Connected = LP['PlayerGui']:WaitForChild('Chat')['Frame'].ChatBarParentFrame['Frame'].BoxFrame['Frame'].ChatBar, {}
+-- 检测聊天系统版本并获取相应组件
+local TextChatService = game:GetService("TextChatService")
+local isNewChatSystem = TextChatService.ChatVersion == Enum.ChatVersion.TextChatService
+
+local CBar, Connected
+
+if isNewChatSystem then
+    -- 新版本聊天系统
+    local chatInputConfiguration = TextChatService:WaitForChild("ChatInputConfiguration", 10)
+    if chatInputConfiguration then
+        -- 新版本使用不同的方法获取输入框
+        warn("使用新版本TextChatService")
+        -- 新版本需要通过不同的方式处理聊天输入
+    else
+        warn("无法找到新版本聊天配置")
+        return
+    end
+else
+    -- 旧版本聊天系统
+    local ChatGui = LP['PlayerGui']:WaitForChild('Chat', 30)
+    if not ChatGui then
+        warn("无法找到聊天界面，请确保聊天系统已启用")
+        return
+    end
+    CBar = ChatGui['Frame'].ChatBarParentFrame['Frame'].BoxFrame['Frame'].ChatBar
+    Connected = {}
+end
 local EventFolder = game:GetService('ReplicatedStorage'):WaitForChild('DefaultChatSystemChatEvents')
 
 local function Chat(Original, msg, Channel)
@@ -449,6 +474,9 @@ MT.__namecall = newcclosure(function(...)
 end)
 
 BindHook['Event']:Connect(function()
-    CBar = LP['PlayerGui'].Chat['Frame'].ChatBarParentFrame['Frame'].BoxFrame['Frame'].ChatBar
-    HookChat(CBar)
+    local ChatGui = LP['PlayerGui']:FindFirstChild('Chat')
+    if ChatGui then
+        CBar = ChatGui['Frame'].ChatBarParentFrame['Frame'].BoxFrame['Frame'].ChatBar
+        HookChat(CBar)
+    end
 end)
