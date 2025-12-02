@@ -292,6 +292,7 @@ local properties = {
     Color = Color3.new(1,1,0);
     Font = Enum.Font.SourceSansItalic;
     TextSize = 16;
+    Text = "";
 }
 
 -- 通知用户
